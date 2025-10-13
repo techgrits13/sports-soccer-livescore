@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: sport-soccer-livescore-backend
+    env: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: API_FOOTBALL_KEY
+        sync: false
+      - key: FOOTBALL_DATA_KEY
+        sync: false
+      - key: API_FOOTBALL_DAILY_LIMIT
+        value: "100"
+      - key: FOOTBALL_DATA_DAILY_LIMIT
+        value: "10"
+      - key: CORS_ORIGIN
+        value: "*"
