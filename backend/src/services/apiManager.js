@@ -18,32 +18,31 @@ class APIManager {
 
     // API configurations
     this.apis = {
-      apiFootball: {
-        name: 'API-Football',
-        baseURL: 'https://v3.football.api-sports.io',
-        key: process.env.API_FOOTBALL_KEY,
+      livescoreApi: {
+        name: 'LivescoreAPI',
+        baseURL: 'https://livescore-api.com/api-client',
+        key: process.env.LIVESCORE_API_KEY,
+        secret: process.env.LIVESCORE_API_SECRET,
         headers: {
-          'x-rapidapi-key': process.env.API_FOOTBALL_KEY,
-          'x-rapidapi-host': 'v3.football.api-sports.io'
+          'Accept': 'application/json'
         },
-        dailyLimit: parseInt(process.env.API_FOOTBALL_DAILY_LIMIT) || 100,
+        dailyLimit: parseInt(process.env.LIVESCORE_DAILY_LIMIT) || 10000,
         requestsToday: 0,
         lastReset: new Date().toDateString(),
-        // Best for: Live scores, detailed match data, lineups, statistics
-        priority: ['live', 'fixtures', 'lineups', 'statistics', 'players', 'leagues']
+        priority: ['*'] // Primary API for all data types
       },
-      footballData: {
-        name: 'Football-Data.org',
-        baseURL: 'https://api.football-data.org/v4',
-        key: process.env.FOOTBALL_DATA_KEY,
+      soccersApi: {
+        name: 'SoccersAPI',
+        baseURL: 'https://api.soccersapi.com/v2.2',
+        username: process.env.SOCCERS_API_USER,
+        token: process.env.SOCCERS_API_TOKEN,
         headers: {
-          'X-Auth-Token': process.env.FOOTBALL_DATA_KEY
+          'Accept': 'application/json'
         },
-        dailyLimit: parseInt(process.env.FOOTBALL_DATA_DAILY_LIMIT) || 10,
+        dailyLimit: parseInt(process.env.SOCCERS_API_DAILY_LIMIT) || 1000,
         requestsToday: 0,
         lastReset: new Date().toDateString(),
-        // Best for: Competition/league data, standings, team info
-        priority: ['competitions', 'standings', 'teams', 'leagues']
+        priority: ['*'] // Failover API
       }
     };
 
@@ -85,8 +84,8 @@ class APIManager {
         const today = new Date().toDateString();
         
         if (usage.date === today) {
-          this.apis.apiFootball.requestsToday = usage.api_football_requests || 0;
-          this.apis.footballData.requestsToday = usage.football_data_requests || 0;
+          this.apis.livescoreApi.requestsToday = usage.livescore_requests || 0;
+          this.apis.soccersApi.requestsToday = usage.soccers_requests || 0;
           logger.info('Restored API quota tracking from database');
         }
       }
@@ -116,28 +115,29 @@ class APIManager {
   selectAPI(dataType) {
     this.resetDailyCountersIfNeeded();
 
-    // Check which APIs can handle this data type
+    // Filter APIs that support this dataType and have remaining quota
     const availableAPIs = Object.entries(this.apis)
       .filter(([key, api]) => {
-        // Check if API can handle this data type
-        const canHandle = api.priority.some(p => dataType.includes(p));
-        // Check if API has quota remaining
-        const hasQuota = api.requestsToday < api.dailyLimit;
-        return canHandle && hasQuota;
+        return api.priority.includes('*') || api.priority.includes(dataType);
+      })
+      .filter(([key, api]) => {
+        return api.requestsToday < api.dailyLimit;
       })
       .sort((a, b) => {
-        // Sort by priority for this data type
-        const aIndex = a[1].priority.findIndex(p => dataType.includes(p));
-        const bIndex = b[1].priority.findIndex(p => dataType.includes(p));
-        return aIndex - bIndex;
+        // Priority: livescoreApi first, then soccersApi
+        const order = { livescoreApi: 0, soccersApi: 1 };
+        return (order[a[0]] || 99) - (order[b[0]] || 99);
       });
 
     if (availableAPIs.length === 0) {
-      logger.error(`No API available for data type: ${dataType}`);
+      logger.error(`No available APIs for ${dataType} or quota exceeded`);
       throw new QuotaExceededError('API quota exceeded for all providers');
     }
 
-    return availableAPIs[0][0]; // Return the key of the best API
+    // Return the highest priority API with available quota
+    const selectedApi = availableAPIs[0][0];
+    logger.info(`Selected ${this.apis[selectedApi].name} for ${dataType}`);
+    return selectedApi;
   }
 
   /**
@@ -195,10 +195,14 @@ class APIManager {
     if (!options.skipCache) {
       const cachedData = this.cache.get(cacheKey);
       if (cachedData) {
-        logger.debug(`Cache hit for ${cacheKey}`);
+        logger.info(`✅ Cache HIT for ${dataType} - API call saved!`);
+        console.log(`💰 Cache saved API request for ${dataType}`);
         return { data: cachedData, fromCache: true };
       }
     }
+    
+    logger.info(`❌ Cache MISS for ${dataType} - fetching from API`);
+    console.log(`🌐 No cache, calling API for ${dataType}`);
 
     // Select best API
     const apiKey = this.selectAPI(dataType);
@@ -207,13 +211,29 @@ class APIManager {
     try {
       logger.info(`Making request to ${api.name} for ${dataType}`);
       
+      // Build request config based on API type
+      let requestConfig = {
+        method: 'GET',
+        headers: api.headers,
+        params: { ...params }
+      };
+      
+      // Add authentication based on API type
+      if (apiKey === 'livescoreApi') {
+        // Livescore API uses key and secret as URL parameters
+        requestConfig.params.key = api.key;
+        if (api.secret) {
+          requestConfig.params.secret = api.secret;
+        }
+      } else if (apiKey === 'soccersApi') {
+        // SoccersAPI uses user and token as URL parameters
+        requestConfig.params.user = api.username;
+        requestConfig.params.token = api.token;
+      }
+      
       const response = await this.makeRequestWithRetry(
         `${api.baseURL}${endpoint}`,
-        {
-          method: 'GET',
-          headers: api.headers,
-          params: params
-        },
+        requestConfig,
         api.name
       );
 
@@ -224,6 +244,10 @@ class APIManager {
       // Cache the response
       const ttl = this.cacheTTL[dataType] || 600;
       this.cache.set(cacheKey, response.data, ttl);
+      
+      const ttlMinutes = Math.floor(ttl / 60);
+      const ttlSeconds = ttl % 60;
+      console.log(`💾 Cached ${dataType} for ${ttlMinutes}m ${ttlSeconds}s`);
 
       logger.info(`${api.name} request successful. Quota: ${api.requestsToday}/${api.dailyLimit}`);
       
@@ -236,26 +260,6 @@ class APIManager {
 
     } catch (error) {
       logger.error(`API request failed for ${api.name}:`, error.message);
-      
-      // Try fallback API if available
-      if (options.allowFallback !== false) {
-        logger.info('Attempting fallback API...');
-        try {
-          const fallbackAPIs = Object.keys(this.apis).filter(k => k !== apiKey);
-          for (const fallbackKey of fallbackAPIs) {
-            const fallbackApi = this.apis[fallbackKey];
-            if (fallbackApi.requestsToday < fallbackApi.dailyLimit) {
-              return await this.request(dataType, endpoint, params, { 
-                ...options, 
-                skipCache: true, 
-                allowFallback: false 
-              });
-            }
-          }
-        } catch (fallbackError) {
-          logger.error('Fallback API also failed:', fallbackError.message);
-        }
-      }
       
       throw error;
     }
@@ -271,8 +275,8 @@ class APIManager {
       
       const usageData = {
         date: today,
-        api_football_requests: this.apis.apiFootball.requestsToday,
-        football_data_requests: this.apis.footballData.requestsToday,
+        livescore_requests: this.apis.livescoreApi.requestsToday,
+        soccers_requests: this.apis.soccersApi.requestsToday,
         updated_at: new Date().toISOString()
       };
 
@@ -295,19 +299,19 @@ class APIManager {
     this.resetDailyCountersIfNeeded();
     
     return {
-      apiFootball: {
-        used: this.apis.apiFootball.requestsToday,
-        limit: this.apis.apiFootball.dailyLimit,
-        remaining: this.apis.apiFootball.dailyLimit - this.apis.apiFootball.requestsToday,
-        percentage: Math.round((this.apis.apiFootball.requestsToday / this.apis.apiFootball.dailyLimit) * 100)
+      livescoreApi: {
+        used: this.apis.livescoreApi.requestsToday,
+        limit: this.apis.livescoreApi.dailyLimit,
+        remaining: this.apis.livescoreApi.dailyLimit - this.apis.livescoreApi.requestsToday,
+        percentage: Math.round((this.apis.livescoreApi.requestsToday / this.apis.livescoreApi.dailyLimit) * 100)
       },
-      footballData: {
-        used: this.apis.footballData.requestsToday,
-        limit: this.apis.footballData.dailyLimit,
-        remaining: this.apis.footballData.dailyLimit - this.apis.footballData.requestsToday,
-        percentage: Math.round((this.apis.footballData.requestsToday / this.apis.footballData.dailyLimit) * 100)
+      soccersApi: {
+        used: this.apis.soccersApi.requestsToday,
+        limit: this.apis.soccersApi.dailyLimit,
+        remaining: this.apis.soccersApi.dailyLimit - this.apis.soccersApi.requestsToday,
+        percentage: Math.round((this.apis.soccersApi.requestsToday / this.apis.soccersApi.dailyLimit) * 100)
       },
-      lastReset: this.apis.apiFootball.lastReset
+      lastReset: this.apis.livescoreApi.lastReset
     };
   }
 

@@ -32,8 +32,9 @@ CREATE TABLE IF NOT EXISTS favorites (
 CREATE TABLE IF NOT EXISTS api_usage (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   date TEXT UNIQUE NOT NULL,
+  livescore_requests INTEGER DEFAULT 0,
   api_football_requests INTEGER DEFAULT 0,
-  football_data_requests INTEGER DEFAULT 0,
+  sportmonks_requests INTEGER DEFAULT 0, -- Legacy column for historical data
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -143,7 +144,6 @@ CREATE TRIGGER update_user_settings_updated_at BEFORE UPDATE ON user_settings
 CREATE TRIGGER update_match_cache_updated_at BEFORE UPDATE ON match_cache
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Insert initial API usage record for today
-INSERT INTO api_usage (date, api_football_requests, football_data_requests)
-VALUES (CURRENT_DATE::TEXT, 0, 0)
+INSERT INTO api_usage (date, sportmonks_requests)
+VALUES (CURRENT_DATE::TEXT, 0)
 ON CONFLICT (date) DO NOTHING;

@@ -13,17 +13,51 @@ services:
         value: 20
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 3000
+      
+      # Database
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_KEY
         sync: false
-      - key: API_FOOTBALL_KEY
+      
+      # Primary API - Livescore
+      - key: LIVESCORE_API_KEY
         sync: false
-      - key: FOOTBALL_DATA_KEY
+      - key: LIVESCORE_API_SECRET
+        sync: false
+      - key: LIVESCORE_DAILY_LIMIT
+        value: "10000"
+      
+      # Secondary API - API-Football (Failover)
+      - key: API_FOOTBALL_KEY
         sync: false
       - key: API_FOOTBALL_DAILY_LIMIT
         value: "100"
-      - key: FOOTBALL_DATA_DAILY_LIMIT
-        value: "10"
+      
+      # Cache Configuration
+      - key: CACHE_TTL_LIVE
+        value: "30"
+      - key: CACHE_TTL_FIXTURES
+        value: "1800"
+      - key: CACHE_TTL_STANDINGS
+        value: "3600"
+      - key: CACHE_TTL_TEAMS
+        value: "86400"
+      - key: CACHE_TTL_LEAGUES
+        value: "86400"
+      - key: CACHE_TTL_STATISTICS
+        value: "300"
+      
+      # Redis (Optional - for scaling)
+      - key: USE_REDIS
+        value: "false"
+      
+      # CORS
       - key: CORS_ORIGIN
         value: "*"
+      
+      # Logging
+      - key: LOG_LEVEL
+        value: "info"

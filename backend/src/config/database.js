@@ -36,20 +36,26 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
 // Test database connection
 const testConnection = async () => {
   try {
+    console.log('🔍 Testing database connection...');
     const { error } = await supabase.from('api_usage').select('count', { count: 'exact', head: true });
     if (error) {
       logger.warn('Database connection test warning:', error.message);
       logger.warn('Some features may not work correctly. Please check your Supabase configuration.');
+      console.log('⚠️  Database connection warning');
     } else {
       logger.info('✓ Database connection successful');
+      console.log('✓ Database connection successful');
     }
   } catch (error) {
     logger.error('Database connection test failed:', error.message);
     logger.warn('Application will continue but database features may not work.');
+    console.log('❌ Database connection failed:', error.message);
   }
 };
 
 // Run connection test asynchronously
-testConnection();
+testConnection().catch(err => {
+  console.error('Database test error:', err);
+});
 
 module.exports = supabase;

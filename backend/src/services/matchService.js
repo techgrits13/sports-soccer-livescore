@@ -9,11 +9,13 @@ class MatchService {
     try {
       const result = await apiManager.request(
         'live',
-        '/fixtures',
-        { live: 'all' }
+        '/livescores/inplay',
+        {
+          include: 'participants;scores;periods;events;league.country;round'
+        }
       );
 
-      return this.transformMatches(result.data);
+      return this.transformLiveMatches(result.data);
     } catch (error) {
       logger.error('Error fetching live matches:', error.message);
       throw error;
@@ -351,6 +353,57 @@ class MatchService {
       substitutes: lineup.substitutes.map(player => player.player),
       coach: lineup.coach
     }));
+  }
+
+  /**
+   * Transform SportMonks live matches data
+   */
+  transformLiveMatches(apiData) {
+    if (!apiData || !apiData.data) {
+      return [];
+    }
+
+    return apiData.data.map(match => {
+      const homeParticipant = match.participants?.find(p => p.meta?.location === 'home') || {};
+      const awayParticipant = match.participants?.find(p => p.meta?.location === 'away') || {};
+      const currentScore = match.scores?.find(score => score.description === 'CURRENT') || {};
+
+      return {
+        id: match.id?.toString(),
+        name: match.name || `${homeParticipant.name ?? 'Home'} vs ${awayParticipant.name ?? 'Away'}`,
+        status: match.status,
+        startTime: match.starting_at,
+        league: {
+          id: match.league?.id?.toString(),
+          name: match.league?.name,
+          country: match.league?.country?.name,
+          round: match.round?.data?.name
+        },
+        homeTeam: {
+          id: homeParticipant.id?.toString(),
+          name: homeParticipant.name,
+          logo: homeParticipant.image_path
+        },
+        awayTeam: {
+          id: awayParticipant.id?.toString(),
+          name: awayParticipant.name,
+          logo: awayParticipant.image_path
+        },
+        score: {
+          home: currentScore?.score?.goals?.home ?? 0,
+          away: currentScore?.score?.goals?.away ?? 0
+        },
+        events: (match.events || []).map(event => ({
+          id: event.id?.toString(),
+          type: event.type,
+          minute: event.minute,
+          extraMinute: event.extra,
+          relatedTeamId: event.participant_id?.toString(),
+          isHomeTeam: event.participant_id === homeParticipant.id,
+          playerName: event.player_name
+        }))
+      };
+    });
   }
 }
 

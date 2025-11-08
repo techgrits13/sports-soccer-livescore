@@ -20,6 +20,7 @@ const leagueRoutes = require('./routes/leagueRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
 const apiRoutes = require('./routes/apiRoutes');
+const testRoutes = require('./routes/testRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -56,6 +57,11 @@ app.get('/health', (req, res) => {
     message: 'Server is running',
     timestamp: new Date().toISOString()
   });
+});
+
+// app-ads.txt for AdMob verification
+app.get('/app-ads.txt', (req, res) => {
+  res.type('text/plain').send('google.com, pub-1810197362148301, DIRECT, f08c47fec0942fa0');
 });
 
 // API documentation endpoint
@@ -114,6 +120,7 @@ app.use('/api/matches', apiLimiter, matchRoutes);
 app.use('/api/leagues', apiLimiter, leagueRoutes);
 app.use('/api/teams', apiLimiter, teamRoutes);
 app.use('/api/favorites', apiLimiter, favoriteRoutes);
+app.use('/api/test', testRoutes); // Test endpoints - no rate limiting
 app.use('/api', strictLimiter, apiRoutes);
 
 // Error handling
@@ -125,11 +132,18 @@ handleUnhandledRejection();
 handleUncaughtException();
 
 // Start server
+console.log(`\n🚀 Starting server on port ${PORT}...`);
 const server = app.listen(PORT, () => {
+  console.log(`\n✅ SERVER IS RUNNING!\n`);
+  console.log(`📍 Port: ${PORT}`);
+  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 API Docs: http://localhost:${PORT}/`);
+  console.log(`❤️  Health: http://localhost:${PORT}/health`);
+  console.log(`📊 Status: http://localhost:${PORT}/api/status`);
+  console.log(`\n✨ Ready to accept connections!\n`);
+  
   logger.info(`🚀 Server is running on port ${PORT}`);
   logger.info(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`🔗 API Documentation: http://localhost:${PORT}/`);
-  logger.info(`❤️  Health Check: http://localhost:${PORT}/health`);
   logger.info(`✨ Backend refinements applied successfully`);
 });
 
@@ -151,5 +165,8 @@ const gracefulShutdown = () => {
 
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
+
+// Prevent premature exit on Windows
+process.stdin.resume();
 
 module.exports = app;

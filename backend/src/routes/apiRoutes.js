@@ -7,13 +7,13 @@ const apiManager = require('../services/apiManager');
  */
 router.get('/status', (req, res) => {
   try {
-    const status = apiManager.getQuotaStatus();
+    const quotaStatus = apiManager.getQuotaStatus();
     const cacheStats = apiManager.getCacheStats();
 
     res.json({
       success: true,
       data: {
-        quota: status,
+        ...quotaStatus,
         cache: cacheStats
       }
     });

@@ -1,8 +1,41 @@
-# Welcome to your Expo app 👋
+# ⚽ Sport Soccer Livescore
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A modern, real-time soccer livescore application built with React Native and Expo.
 
-## Get started
+## Features
+
+### 📱 Screens
+
+1. **Home / Live Matches Screen**
+   - Primary landing screen with live, recent, and upcoming matches
+   - Tabs for "Live," "Upcoming," and "Results"
+   - Match cards showing team logos, scores, status, and time
+   - Pull-to-refresh for updates
+
+2. **Match Detail Screen**
+   - Detailed scoreline with team information
+   - Events timeline (goals, cards, substitutions)
+   - Match statistics (possession, shots, corners, fouls)
+   - Team lineups
+
+3. **Leagues / Competitions Screen**
+   - List of leagues with logos and flags
+   - Search/filter functionality
+   - Match count per league
+   - Navigate to league-specific matches
+
+4. **Favorites Screen**
+   - View followed teams/leagues/matches
+   - Prioritized live updates
+   - Empty state with call-to-action
+
+5. **Settings / Profile Screen**
+   - Notification preferences management
+   - Theme support (light/dark mode)
+   - User profile
+   - About/version information
+
+## Get Started
 
 1. Install dependencies
 
@@ -10,41 +43,60 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
-2. Start the app
+2. Start the development server
 
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+3. Run on your preferred platform
+   - Press `i` for iOS simulator
+   - Press `a` for Android emulator
+   - Press `w` for web browser
+   - Scan QR code with Expo Go app on your mobile device
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Tech Stack
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- **React Native** - Cross-platform mobile framework
+- **Expo** - Development platform and tooling
+- **Expo Router** - File-based routing
+- **TypeScript** - Type safety
+- **React Navigation** - Navigation library
 
-## Get a fresh project
+## Project Structure
 
-When you're ready, run:
+```
+├── app/
+│   ├── (tabs)/           # Tab-based screens
+│   │   ├── index.tsx     # Home/Live Matches
+│   │   ├── leagues.tsx   # Leagues screen
+│   │   ├── favorites.tsx # Favorites screen
+│   │   └── settings.tsx  # Settings screen
+│   ├── match-detail.tsx  # Match detail screen
+│   └── league-matches.tsx # League matches screen
+├── components/           # Reusable components
+│   └── match-card.tsx    # Match card component
+├── types/               # TypeScript types
+│   └── match.ts         # Match-related types
+├── data/                # Mock data
+│   └── mockData.ts      # Sample matches and leagues
+└── constants/           # App constants
+    └── theme.ts         # Color themes
 
-```bash
-npm run reset-project
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Future Enhancements
 
-## Learn more
+- 🔴 Real-time API integration for live scores
+- 🔔 Push notifications for match events
+- 👤 User authentication and profile sync
+- ⭐ Persistent favorites storage
+- 🌍 Multiple language support
+- 📊 Advanced statistics and analytics
+- 🎥 Match highlights and video clips
 
-To learn more about developing your project with Expo, look at the following resources:
+## Learn More
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- [Expo Documentation](https://docs.expo.dev/)
+- [React Native Documentation](https://reactnative.dev/)
+- [Expo Router Documentation](https://docs.expo.dev/router/introduction/)

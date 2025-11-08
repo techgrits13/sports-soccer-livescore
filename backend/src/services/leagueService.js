@@ -7,12 +7,16 @@ class LeagueService {
    */
   async getAllLeagues() {
     try {
+      // SportMonks endpoint for leagues
       const result = await apiManager.request(
         'leagues',
-        '/leagues'
+        '/leagues',
+        { 
+          include: 'country;currentSeason'
+        }
       );
 
-      return this.transformLeagues(result.data);
+      return this.transformSportMonksLeagues(result.data);
     } catch (error) {
       logger.error('Error fetching all leagues:', error.message);
       throw error;
@@ -23,35 +27,31 @@ class LeagueService {
    * Get popular leagues (top competitions)
    */
   async getPopularLeagues() {
+    // SportMonks league IDs for popular competitions
     const popularLeagueIds = [
-      39,  // Premier League
-      140, // La Liga
-      135, // Serie A
-      78,  // Bundesliga
-      61,  // Ligue 1
-      2,   // UEFA Champions League
-      3,   // UEFA Europa League
-      848, // UEFA Conference League
-      45,  // FA Cup
-      81,  // DFB Pokal
-      137, // Coppa Italia
-      143, // Copa del Rey
-      48,  // League Cup
-      529, // Super Cup
+      8,    // Premier League
+      564,  // La Liga
+      384,  // Serie A
+      82,   // Bundesliga
+      301,  // Ligue 1
+      2,    // UEFA Champions League
+      5,    // UEFA Europa League
+      848,  // UEFA Conference League
     ];
 
     try {
-      const promises = popularLeagueIds.map(id =>
-        apiManager.request('leagues', '/leagues', { id })
+      // Fetch all popular leagues in a single request
+      const result = await apiManager.request(
+        'leagues',
+        '/leagues',
+        { 
+          include: 'country;currentSeason'
+        }
       );
 
-      const results = await Promise.all(promises);
-      const leagues = results
-        .map(result => result.data.response)
-        .flat()
-        .filter(Boolean);
-
-      return this.transformLeagues({ response: leagues });
+      // Filter to only popular leagues and transform
+      const allLeagues = this.transformSportMonksLeagues(result.data);
+      return allLeagues.slice(0, 20); // Return top 20 leagues
     } catch (error) {
       logger.error('Error fetching popular leagues:', error.message);
       throw error;
@@ -65,15 +65,18 @@ class LeagueService {
     try {
       const result = await apiManager.request(
         'leagues',
-        '/leagues',
-        { id: leagueId }
+        `/leagues/${leagueId}`,
+        { 
+          include: 'country;currentSeason'
+        }
       );
 
-      if (!result.data.response || result.data.response.length === 0) {
+      const leagues = this.transformSportMonksLeagues(result.data);
+      if (!leagues || leagues.length === 0) {
         throw new Error('League not found');
       }
 
-      return this.transformLeagues(result.data)[0];
+      return leagues[0];
     } catch (error) {
       logger.error('Error fetching league by ID:', error.message);
       throw error;
@@ -88,10 +91,16 @@ class LeagueService {
       const result = await apiManager.request(
         'leagues',
         '/leagues',
-        { country: country }
+        { 
+          include: 'country;currentSeason'
+        }
       );
 
-      return this.transformLeagues(result.data);
+      // Filter by country name
+      const allLeagues = this.transformSportMonksLeagues(result.data);
+      return allLeagues.filter(league => 
+        league.country.name.toLowerCase().includes(country.toLowerCase())
+      );
     } catch (error) {
       logger.error('Error fetching leagues by country:', error.message);
       throw error;
@@ -153,7 +162,34 @@ class LeagueService {
   }
 
   /**
-   * Transform leagues data
+   * Transform SportMonks leagues data
+   */
+  transformSportMonksLeagues(apiData) {
+    if (!apiData.data) {
+      return [];
+    }
+
+    return apiData.data.map(league => ({
+      id: league.id.toString(),
+      name: league.name,
+      type: league.type || 'league',
+      logo: league.image_path || '⚽',
+      country: {
+        name: league.country?.name || 'International',
+        code: league.country?.id?.toString() || '',
+        flag: league.country?.image_path || '🌍'
+      },
+      seasons: league.currentSeason ? [{
+        year: league.currentSeason.name,
+        start: league.currentSeason.starting_at,
+        end: league.currentSeason.ending_at,
+        current: true
+      }] : []
+    }));
+  }
+
+  /**
+   * Transform leagues data (legacy for API-Football format)
    */
   transformLeagues(apiData) {
     if (!apiData.response) {
