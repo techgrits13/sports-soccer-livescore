@@ -1,6 +1,16 @@
 const rateLimit = require('express-rate-limit');
 
 /**
+ * Determine if we should trust proxy headers
+ * Only trust in production when behind a reverse proxy (e.g., Render, Heroku)
+ */
+const isProduction = process.env.NODE_ENV === 'production';
+const isBehindProxy = process.env.RENDER === 'true' || process.env.HEROKU === 'true';
+
+// Configure trust for rate limiter based on environment
+const trustProxyForRateLimit = isProduction && isBehindProxy ? 1 : false;
+
+/**
  * General API rate limiter
  */
 const apiLimiter = rateLimit({
@@ -12,6 +22,8 @@ const apiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // Explicitly configure trust proxy for rate limiter
+  validate: { trustProxy: trustProxyForRateLimit },
 });
 
 /**
@@ -26,6 +38,7 @@ const strictLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: trustProxyForRateLimit },
 });
 
 /**
@@ -40,6 +53,7 @@ const liveLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: trustProxyForRateLimit },
 });
 
 module.exports = {
