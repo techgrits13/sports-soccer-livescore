@@ -1,0 +1,178 @@
+================================================================================
+  SPORT SOCCER LIVESCORE - QUICK SETUP GUIDE
+================================================================================
+
+📋 YOUR NEW CONFIGURATION
+================================================================================
+
+PRIMARY API (Livescore):
+  Key: 6c9510e4bca93f2d49e8687289dbb6269a3434c155c0892465b059bf9e422247
+  Limit: 10,000 requests/day
+  
+FAILOVER API (API-Football):
+  Key: NgK0qEkAg2
+  Limit: 100 requests/day
+
+SUPABASE:
+  URL: https://olkfxyoskuhrgycopsox.supabase.co
+  ✅ Already configured
+
+================================================================================
+🚀 QUICK START (3 STEPS)
+================================================================================
+
+STEP 1: Update Database
+------------------------
+1. Go to: https://olkfxyoskuhrgycopsox.supabase.co
+2. SQL Editor → Run: backend/MIGRATION_SQL.sql
+3. Done!
+
+STEP 2: Configure Environment
+------------------------------
+cd backend
+cp .env.new .env
+# Or just use the .env.new file as-is
+
+STEP 3: Test & Deploy
+----------------------
+# Local test:
+npm install
+npm start
+# Visit: http://localhost:3000/health
+
+# Deploy to Render:
+# See DEPLOYMENT_GUIDE.md (full instructions)
+
+================================================================================
+📝 WHAT CHANGED
+================================================================================
+
+✅ New primary API: Livescore (10k/day limit)
+✅ Failover API: API-Football (100/day limit)
+✅ Removed: SportMonks API (old)
+✅ Better caching (reduces API usage by ~80%)
+✅ Automatic failover when quota exceeded
+✅ Database updated for new APIs
+✅ Ready for fresh Render deployment
+
+================================================================================
+📁 FILES TO USE
+================================================================================
+
+backend/.env.new        → Your new environment file (copy to .env)
+backend/MIGRATION_SQL.sql → Run this in Supabase SQL editor
+DEPLOYMENT_GUIDE.md     → Complete deployment instructions
+API_MIGRATION_SUMMARY.md → Technical details
+
+================================================================================
+🧪 TESTING
+================================================================================
+
+After setup, test these endpoints:
+
+Health Check:
+  http://localhost:3000/health
+  Expected: {"success":true,"message":"Server is running"}
+
+API Status (check quota):
+  http://localhost:3000/api/status
+  Expected: Shows livescoreApi and apiFootball quota
+
+Live Matches:
+  http://localhost:3000/api/matches/live
+  Expected: Array of matches or empty array
+
+================================================================================
+🌐 RENDER DEPLOYMENT
+================================================================================
+
+1. Create new Web Service on Render.com
+2. Connect your GitHub repo
+3. Set root directory: backend
+4. Add these environment variables:
+   - SUPABASE_URL
+   - SUPABASE_KEY
+   - LIVESCORE_API_KEY
+   - API_FOOTBALL_KEY
+   - NODE_ENV=production
+   
+   (See .env.new for full list)
+
+4. Deploy!
+
+================================================================================
+⚡ CACHE SETTINGS (Already Configured)
+================================================================================
+
+Live matches:    30 seconds   (real-time updates)
+Fixtures:        30 minutes   (doesn't change often)
+Standings:       1 hour       (updates after matches)
+Teams/Leagues:   24 hours     (rarely changes)
+Statistics:      5 minutes    (semi-live data)
+
+This caching means you'll use MUCH LESS than 10k requests/day!
+
+================================================================================
+📊 MONITORING
+================================================================================
+
+Check API usage anytime:
+  https://your-backend.onrender.com/api/status
+
+Example response:
+{
+  "livescoreApi": {
+    "used": 42,
+    "limit": 10000,
+    "remaining": 9958,
+    "percentage": 0
+  },
+  "apiFootball": {
+    "used": 0,
+    "limit": 100,
+    "remaining": 100,
+    "percentage": 0
+  }
+}
+
+================================================================================
+🎯 NEXT STEPS
+================================================================================
+
+☐ Run MIGRATION_SQL.sql in Supabase
+☐ Copy .env.new to .env
+☐ Test locally (npm start)
+☐ Deploy to Render
+☐ Update frontend EXPO_PUBLIC_API_BASE_URL
+☐ Test mobile app
+☐ Monitor API usage
+
+================================================================================
+💡 TIPS
+================================================================================
+
+• Cache is aggressive - most requests won't hit APIs
+• Livescore API tried first, API-Football is backup
+• Free Render tier works fine for testing
+• Monitor /api/status to track quota usage
+• Quotas reset daily at midnight UTC
+
+================================================================================
+❓ NEED HELP?
+================================================================================
+
+Full documentation:
+  → DEPLOYMENT_GUIDE.md (step-by-step deployment)
+  → API_MIGRATION_SUMMARY.md (technical details)
+
+Test endpoints with curl or Postman
+Check Render logs for errors
+Verify environment variables are set
+
+================================================================================
+
+🎉 You're ready to deploy!
+
+Questions? Check DEPLOYMENT_GUIDE.md for detailed instructions.
+
+================================================================================

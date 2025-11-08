@@ -6,6 +6,7 @@ const morgan = require('morgan');
 require('dotenv').config();
 
 const logger = require('./config/logger');
+const { getTrustProxySetting } = require('./config/trustProxy');
 const { 
   errorHandler, 
   notFound, 
@@ -25,9 +26,11 @@ const testRoutes = require('./routes/testRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Trust proxy - Required for Render.com and other reverse proxies
-// This allows Express to properly identify client IPs from X-Forwarded-For header
-app.set('trust proxy', true);
+// Configure trust proxy dynamically (Render requires it, local does not)
+const trustProxySetting = getTrustProxySetting();
+if (trustProxySetting !== undefined) {
+  app.set('trust proxy', trustProxySetting);
+}
 
 // Security middleware
 app.use(helmet());

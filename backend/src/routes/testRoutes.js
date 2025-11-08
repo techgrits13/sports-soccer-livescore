@@ -175,6 +175,50 @@ router.get('/api-manager', async (req, res) => {
 });
 
 /**
+ * Test SoccersAPI livescores endpoint (correct endpoint!)
+ */
+router.get('/soccers-matches', async (req, res) => {
+  try {
+    console.log('🧪 Testing SoccersAPI livescores endpoint...');
+    
+    const user = process.env.SOCCERS_API_USER;
+    const token = process.env.SOCCERS_API_TOKEN;
+    
+    // Test live matches using correct endpoint
+    const url = 'https://api.soccersapi.com/v2.2/livescores/';
+    const params = { user, token, t: 'today' };  // Use 'today' for all today's matches
+    
+    console.log('Calling:', url);
+    console.log('Params:', params);
+    
+    const response = await axios.get(url, { params, timeout: 15000 });
+    
+    console.log('✅ SoccersAPI Livescores Response:', response.status);
+    console.log('Data keys:', Object.keys(response.data || {}));
+    console.log('Match count:', response.data?.data?.length || 0);
+    
+    res.json({
+      success: true,
+      api: 'SoccersAPI Livescores',
+      status: response.status,
+      dataKeys: Object.keys(response.data || {}),
+      matchCount: response.data?.data?.length || 0,
+      sampleData: response.data
+    });
+  } catch (error) {
+    console.error('❌ SoccersAPI Livescores Error:', error.message);
+    console.error('Response:', error.response?.data);
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+  }
+});
+
+/**
  * Get cache statistics
  */
 router.get('/cache-stats', (req, res) => {
