@@ -191,18 +191,19 @@ class APIManager {
   async request(dataType, endpoint, params = {}, options = {}) {
     const cacheKey = `${dataType}:${endpoint}:${JSON.stringify(params)}`;
     
+    // CACHING DISABLED FOR DEBUGGING
     // Check cache first
-    if (!options.skipCache) {
-      const cachedData = this.cache.get(cacheKey);
-      if (cachedData) {
-        logger.info(`✅ Cache HIT for ${dataType} - API call saved!`);
-        console.log(`💰 Cache saved API request for ${dataType}`);
-        return { data: cachedData, fromCache: true };
-      }
-    }
+    // if (!options.skipCache) {
+    //   const cachedData = this.cache.get(cacheKey);
+    //   if (cachedData) {
+    //     logger.info(`✅ Cache HIT for ${dataType} - API call saved!`);
+    //     console.log(`💰 Cache saved API request for ${dataType}`);
+    //     return { data: cachedData, fromCache: true };
+    //   }
+    // }
     
-    logger.info(`❌ Cache MISS for ${dataType} - fetching from API`);
-    console.log(`🌐 No cache, calling API for ${dataType}`);
+    logger.info(`🌐 Direct API request for ${dataType} (cache disabled)`);
+    console.log(`🌐 Making direct API call for ${dataType}`);
 
     // Select best API
     const apiKey = this.selectAPI(dataType);
@@ -241,14 +242,16 @@ class APIManager {
       api.requestsToday++;
       await this.trackUsage(apiKey);
 
+      // CACHING DISABLED FOR DEBUGGING
       // Cache the response
-      const ttl = this.cacheTTL[dataType] || 600;
-      this.cache.set(cacheKey, response.data, ttl);
-      
-      const ttlMinutes = Math.floor(ttl / 60);
-      const ttlSeconds = ttl % 60;
-      console.log(`💾 Cached ${dataType} for ${ttlMinutes}m ${ttlSeconds}s`);
+      // const ttl = this.cacheTTL[dataType] || 600;
+      // this.cache.set(cacheKey, response.data, ttl);
+      // 
+      // const ttlMinutes = Math.floor(ttl / 60);
+      // const ttlSeconds = ttl % 60;
+      // console.log(`💾 Cached ${dataType} for ${ttlMinutes}m ${ttlSeconds}s`);
 
+      console.log(`✅ Direct API call successful (no caching)`);
       logger.info(`${api.name} request successful. Quota: ${api.requestsToday}/${api.dailyLimit}`);
       
       return { 
@@ -260,6 +263,13 @@ class APIManager {
 
     } catch (error) {
       logger.error(`API request failed for ${api.name}:`, error.message);
+      console.error(`❌ ${api.name} API Error:`, error.message);
+      console.error(`   Endpoint: ${endpoint}`);
+      console.error(`   Params:`, JSON.stringify(requestConfig.params));
+      if (error.response) {
+        console.error(`   Response Status:`, error.response.status);
+        console.error(`   Response Data:`, error.response.data);
+      }
       
       throw error;
     }
