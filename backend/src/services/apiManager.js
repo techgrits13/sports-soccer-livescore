@@ -43,6 +43,22 @@ class APIManager {
         requestsToday: 0,
         lastReset: new Date().toDateString(),
         priority: ['*'] // Failover API
+      },
+      sportMonks: {
+        name: 'SportMonks',
+        baseURL: 'https://api.sportmonks.com/v3/football',
+        token: process.env.SPORTMONKS_LIVE_KEY || process.env.SPORTMONKS_UPCOMING_KEY,
+        tokens: {
+          live: process.env.SPORTMONKS_LIVE_KEY,
+          upcoming: process.env.SPORTMONKS_UPCOMING_KEY
+        },
+        headers: {
+          'Accept': 'application/json'
+        },
+        dailyLimit: parseInt(process.env.SPORTMONKS_DAILY_LIMIT) || 3000,
+        requestsToday: 0,
+        lastReset: new Date().toDateString(),
+        priority: ['rounds'] // Primary for round details
       }
     };
 
@@ -54,7 +70,8 @@ class APIManager {
       teams: 86400,       // 24 hours for team data
       leagues: 86400,     // 24 hours for league data
       players: 86400,     // 24 hours for player data
-      statistics: 300     // 5 minutes for statistics
+      statistics: 300,    // 5 minutes for statistics
+      rounds: 300         // 5 minutes for round details
     };
 
     // Retry configuration
@@ -86,6 +103,7 @@ class APIManager {
         if (usage.date === today) {
           this.apis.livescoreApi.requestsToday = usage.livescore_requests || 0;
           this.apis.soccersApi.requestsToday = usage.soccers_requests || 0;
+          this.apis.sportMonks.requestsToday = usage.sportmonks_requests || 0;
           logger.info('Restored API quota tracking from database');
         }
       }
@@ -124,8 +142,8 @@ class APIManager {
         return api.requestsToday < api.dailyLimit;
       })
       .sort((a, b) => {
-        // Priority: livescoreApi first, then soccersApi
-        const order = { livescoreApi: 0, soccersApi: 1 };
+        // Priority: livescoreApi first, then soccersApi, then sportMonks
+        const order = { livescoreApi: 0, soccersApi: 1, sportMonks: 2 };
         return (order[a[0]] || 99) - (order[b[0]] || 99);
       });
 
@@ -138,6 +156,21 @@ class APIManager {
     const selectedApi = availableAPIs[0][0];
     logger.info(`Selected ${this.apis[selectedApi].name} for ${dataType}`);
     return selectedApi;
+  }
+
+  getSportMonksToken(dataType) {
+    const sportMonks = this.apis.sportMonks;
+    const tokens = sportMonks.tokens || {};
+
+    if (dataType === 'live' && tokens.live) {
+      return tokens.live;
+    }
+
+    if (['fixtures', 'upcoming', 'schedule', 'rounds'].includes(dataType) && tokens.upcoming) {
+      return tokens.upcoming;
+    }
+
+    return tokens.live || tokens.upcoming || sportMonks.token;
   }
 
   /**
@@ -230,6 +263,11 @@ class APIManager {
         // SoccersAPI uses user and token as URL parameters
         requestConfig.params.user = api.username;
         requestConfig.params.token = api.token;
+      } else if (apiKey === 'sportMonks') {
+        // SportMonks expects the token as api_token query parameter
+        const selectedToken = this.getSportMonksToken(dataType);
+        requestConfig.params.api_token = selectedToken;
+        api.token = selectedToken;
       }
       
       const response = await this.makeRequestWithRetry(
@@ -287,6 +325,7 @@ class APIManager {
         date: today,
         livescore_requests: this.apis.livescoreApi.requestsToday,
         soccers_requests: this.apis.soccersApi.requestsToday,
+        sportmonks_requests: this.apis.sportMonks.requestsToday,
         updated_at: new Date().toISOString()
       };
 
@@ -320,6 +359,12 @@ class APIManager {
         limit: this.apis.soccersApi.dailyLimit,
         remaining: this.apis.soccersApi.dailyLimit - this.apis.soccersApi.requestsToday,
         percentage: Math.round((this.apis.soccersApi.requestsToday / this.apis.soccersApi.dailyLimit) * 100)
+      },
+      sportMonks: {
+        used: this.apis.sportMonks.requestsToday,
+        limit: this.apis.sportMonks.dailyLimit,
+        remaining: this.apis.sportMonks.dailyLimit - this.apis.sportMonks.requestsToday,
+        percentage: Math.round((this.apis.sportMonks.requestsToday / this.apis.sportMonks.dailyLimit) * 100)
       },
       lastReset: this.apis.livescoreApi.lastReset
     };
