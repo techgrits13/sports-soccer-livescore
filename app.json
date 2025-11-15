@@ -2,8 +2,8 @@
   "expo": {
     "name": "sport-soccer-livescore",
     "slug": "sport-soccer-livescore",
-    "version": "1.0.0",
-    "orientation": "portrait",
+    "version": "1.0.5",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "sportsoccerlivescore",
     "userInterfaceStyle": "automatic",
@@ -21,7 +21,12 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.techgrits.sportssoccerlivescore",
-      "versionCode": 2
+      "versionCode": 4,
+      "supportsTablet": true,
+      "screenOrientation": "fullSensor",
+      "permissions": [
+        "com.google.android.gms.permission.AD_ID"
+      ]
     },
     "web": {
       "output": "static",
