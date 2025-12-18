@@ -22,6 +22,7 @@ const teamRoutes = require('./routes/teamRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
 const apiRoutes = require('./routes/apiRoutes');
 const testRoutes = require('./routes/testRoutes');
+const roundRoutes = require('./routes/roundRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,6 +32,11 @@ const trustProxySetting = getTrustProxySetting();
 if (trustProxySetting !== undefined) {
   app.set('trust proxy', trustProxySetting);
 }
+
+// app-ads.txt for AdMob verification (must be before middleware)
+app.get('/app-ads.txt', (req, res) => {
+  res.type('text/plain').send('google.com, pub-1810197362148301, DIRECT, f08c47fec0942fa0');
+});
 
 // Security middleware
 app.use(helmet());
@@ -64,11 +70,6 @@ app.get('/health', (req, res) => {
     message: 'Server is running',
     timestamp: new Date().toISOString()
   });
-});
-
-// app-ads.txt for AdMob verification
-app.get('/app-ads.txt', (req, res) => {
-  res.type('text/plain').send('google.com, pub-1810197362148301, DIRECT, f08c47fec0942fa0');
 });
 
 // API documentation endpoint
@@ -127,6 +128,7 @@ app.use('/api/matches', apiLimiter, matchRoutes);
 app.use('/api/leagues', apiLimiter, leagueRoutes);
 app.use('/api/teams', apiLimiter, teamRoutes);
 app.use('/api/favorites', apiLimiter, favoriteRoutes);
+app.use('/api/rounds', apiLimiter, roundRoutes);
 app.use('/api/test', testRoutes); // Test endpoints - no rate limiting
 app.use('/api', strictLimiter, apiRoutes);
 
